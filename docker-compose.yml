@@ -1,0 +1,36 @@
+services:
+  devana:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: devana-web
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATA_DIR: /app/data
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      BACKUP_HMAC_KEY: ${BACKUP_HMAC_KEY:-}
+      FIREBASE_API_KEY: ${FIREBASE_API_KEY:-}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      FIREBASE_DATABASE_ID: ${FIREBASE_DATABASE_ID:-(default)}
+    volumes:
+      - devana_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+volumes:
+  devana_data:
+    driver: local

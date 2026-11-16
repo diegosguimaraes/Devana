@@ -1,0 +1,166 @@
+/* ============================================================================
+   Devana Design Tokens — Light & Dark Semantic Foundation
+   Scale: 1.125 (Major Second) | Typography: Plus Jakarta Sans + Bricolage Grotesque + JetBrains Mono
+   Spacing: 4 / 8 / 12 / 16 / 24 / 32 / 48 / 64
+   ============================================================================ */
+
+:root {
+  /* Fonts (Devana Brand Identity) */
+  --font-display:
+    'Bricolage Grotesque', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans:
+    'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Modular Type Scale (1.125 ratio, base 16px) */
+  --text-xs: 0.75rem; /* 12px */
+  --leading-xs: 1.125rem;
+  --text-sm: 0.875rem; /* 14px */
+  --leading-sm: 1.25rem;
+  --text-base: 1rem; /* 16px */
+  --leading-base: 1.55rem;
+  --text-lg: 1.125rem; /* 18px */
+  --leading-lg: 1.65rem;
+  --text-xl: 1.266rem; /* ~20.25px */
+  --leading-xl: 1.75rem;
+  --text-2xl: 1.602rem; /* ~25.6px */
+  --leading-2xl: 2.05rem;
+  --text-3xl: 2.027rem; /* ~32.4px */
+  --leading-3xl: 2.4rem;
+  --text-4xl: clamp(2.25rem, 3.6vw, 3rem);
+  --leading-4xl: 1.12;
+
+  /* Semantic Surfaces & Neutrals (Light Mode) */
+  --bg-canvas: #f8fafc;
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-subtle: #f1f5f9;
+  --surface-hover: #f8fafc;
+
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #475569;
+
+  /* Brand & Primary Action (10% Accent Budget) */
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-active: #3730a3;
+  --primary-foreground: #ffffff;
+  --primary-subtle: #eef2ff;
+  --primary-border: #c7d2fe;
+
+  --brand-ink: #2d1b4e;
+  --focus-ring: #4f46e5;
+
+  /* Semantic Feedback Tokens */
+  --success: #15803d;
+  --success-solid: #16a34a;
+  --success-subtle: #f0fdf4;
+  --success-border: #bbf7d0;
+
+  --warning: #b45309;
+  --warning-solid: #d97706;
+  --warning-subtle: #fffbeb;
+  --warning-border: #fde68a;
+
+  --danger: #b91c1c;
+  --danger-solid: #dc2626;
+  --danger-subtle: #fef2f2;
+  --danger-border: #fecaca;
+
+  --info: #0369a1;
+  --info-solid: #0284c7;
+  --info-subtle: #f0f9ff;
+  --info-border: #bae6fd;
+
+  /* Spacing Scale (4 / 8 / 12 / 16 / 24 / 32 / 48 / 64) */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem; /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-6: 1.5rem; /* 24px */
+  --space-8: 2rem; /* 32px */
+  --space-12: 3rem; /* 48px */
+  --space-16: 4rem; /* 64px */
+
+  /* Radii Scale */
+  --radius-sm: 0.375rem; /* 6px */
+  --radius-md: 0.5rem; /* 8px */
+  --radius-lg: 0.75rem; /* 12px */
+  --radius-xl: 1rem; /* 16px */
+  --radius-full: 9999px;
+
+  /* Layered Elevation Shadows (Light Mode) */
+  --shadow-subtle: 0 1px 2px 0 rgb(15 23 42 / 0.04);
+  --shadow-elevated:
+    0 4px 12px -2px rgb(15 23 42 / 0.07), 0 2px 4px -2px rgb(15 23 42 / 0.04);
+  --shadow-overlay:
+    0 18px 40px -8px rgb(15 23 42 / 0.16), 0 4px 12px -4px rgb(15 23 42 / 0.08);
+
+  /* Named Z-Index Layers */
+  --z-base: 0;
+  --z-sticky: 20;
+  --z-drawer: 30;
+  --z-popover: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+
+  /* Motion & Timing Tokens */
+  --duration-fast: 150ms;
+  --duration-normal: 220ms;
+  --duration-slow: 280ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark {
+  --bg-canvas: #090d16;
+  --surface: #111827;
+  --surface-elevated: #172033;
+  --surface-subtle: #1e293b;
+  --surface-hover: #1e293b;
+
+  --border: #1f2937;
+  --border-strong: #334155;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+
+  --primary: #6366f1;
+  --primary-hover: #818cf8;
+  --primary-active: #4f46e5;
+  --primary-foreground: #ffffff;
+  --primary-subtle: rgb(79 70 229 / 0.16);
+  --primary-border: rgb(99 102 241 / 0.35);
+
+  --brand-ink: #1a1030;
+  --focus-ring: #818cf8;
+
+  --success: #4ade80;
+  --success-solid: #16a34a;
+  --success-subtle: rgb(22 163 74 / 0.14);
+  --success-border: rgb(34 197 94 / 0.3);
+
+  --warning: #fbbf24;
+  --warning-solid: #d97706;
+  --warning-subtle: rgb(217 119 6 / 0.15);
+  --warning-border: rgb(245 158 11 / 0.32);
+
+  --danger: #f87171;
+  --danger-solid: #dc2626;
+  --danger-subtle: rgb(220 38 38 / 0.16);
+  --danger-border: rgb(248 113 113 / 0.32);
+
+  --info: #38bdf8;
+  --info-solid: #0284c7;
+  --info-subtle: rgb(2 132 199 / 0.16);
+  --info-border: rgb(56 189 248 / 0.32);
+
+  --shadow-subtle: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+  --shadow-elevated: 0 8px 20px -4px rgb(0 0 0 / 0.45), 0 2px 6px -2px rgb(0 0 0 / 0.3);
+  --shadow-overlay:
+    0 22px 48px -10px rgb(0 0 0 / 0.65), 0 6px 16px -4px rgb(0 0 0 / 0.45);
+}

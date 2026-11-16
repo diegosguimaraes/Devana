@@ -1,0 +1,623 @@
+{
+  "entities": {
+    "UserPublicProfile": {
+      "title": "UserPublicProfile",
+      "description": "Public profile for a tech professional or client with zero PII fields.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the user."
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Public display name."
+        },
+        "roleType": {
+          "type": "string",
+          "enum": ["client", "freelancer"],
+          "maxLength": 20,
+          "description": "Account role type: client or freelancer."
+        },
+        "isAvailableForHire": {
+          "type": "boolean",
+          "description": "Whether the user is listed in the public talent directory."
+        },
+        "specialty": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100,
+          "description": "Technical specialty or engineering focus."
+        },
+        "hourlyRate": {
+          "type": "number",
+          "description": "Hourly rate in BRL (R$)."
+        },
+        "reputationScore": {
+          "type": "number",
+          "description": "Average reputation score from 0 to 5."
+        },
+        "completedProjects": {
+          "type": "number",
+          "description": "Count of completed projects."
+        },
+        "githubUsername": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "GitHub username for commit verification."
+        },
+        "avatarUrl": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Avatar URL."
+        },
+        "bio": {
+          "type": "string",
+          "maxLength": 600,
+          "description": "Short professional summary."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update server timestamp."
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "roleType",
+        "isAvailableForHire",
+        "specialty",
+        "hourlyRate",
+        "reputationScore",
+        "completedProjects",
+        "githubUsername",
+        "avatarUrl",
+        "bio",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserPrivatePii": {
+      "title": "UserPrivatePii",
+      "description": "Strictly isolated private user settings and AES-GCM encrypted PII payload.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Owner UID."
+        },
+        "encryptedPiiPayload": {
+          "type": "string",
+          "maxLength": 4096,
+          "description": "Client-side AES-256-GCM encrypted JSON containing email, tax document, and phone."
+        },
+        "pushNotificationsEnabled": {
+          "type": "boolean",
+          "description": "Global push notifications toggle."
+        },
+        "notifyOnBid": {
+          "type": "boolean",
+          "description": "Notify when a new bid arrives."
+        },
+        "notifyOnMessage": {
+          "type": "boolean",
+          "description": "Notify when a real-time chat message arrives."
+        },
+        "notifyOnEscrow": {
+          "type": "boolean",
+          "description": "Notify when an escrow milestone changes state."
+        },
+        "backupEndpointUrl": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "External cloud backup endpoint URL."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update server timestamp."
+        }
+      },
+      "required": [
+        "ownerId",
+        "encryptedPiiPayload",
+        "pushNotificationsEnabled",
+        "notifyOnBid",
+        "notifyOnMessage",
+        "notifyOnEscrow",
+        "backupEndpointUrl",
+        "updatedAt"
+      ]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Technology freelance project with escrow state and bidding support.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 140,
+          "description": "Project title."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 3000,
+          "description": "Detailed technical specification."
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Backend & APIs",
+            "Frontend & UI",
+            "Cloud & DevOps",
+            "Dados & IA",
+            "Mobile",
+            "Segurança & Auditoria"
+          ],
+          "maxLength": 50,
+          "description": "Engineering domain category."
+        },
+        "budget": {
+          "type": "number",
+          "description": "Total project budget in BRL."
+        },
+        "deadlineDays": {
+          "type": "number",
+          "description": "Estimated delivery deadline in days."
+        },
+        "repoUrl": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Git repository URL for version control integration."
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Client UID who created the project."
+        },
+        "ownerName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Client display name."
+        },
+        "assignedFreelancerId": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Assigned freelancer UID (or empty string if open)."
+        },
+        "assignedFreelancerName": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Assigned freelancer display name."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["open", "in_progress", "completed", "cancelled"],
+          "maxLength": 20,
+          "description": "Lifecycle status of the project."
+        },
+        "escrowStatus": {
+          "type": "string",
+          "enum": ["unfunded", "funded", "released", "refunded"],
+          "maxLength": 20,
+          "description": "Escrow protection status."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update server timestamp."
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "category",
+        "budget",
+        "deadlineDays",
+        "repoUrl",
+        "ownerId",
+        "ownerName",
+        "assignedFreelancerId",
+        "assignedFreelancerName",
+        "status",
+        "escrowStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Bid": {
+      "title": "Bid",
+      "description": "Technical proposal submitted by a freelancer on an open project.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Target project ID."
+        },
+        "projectOwnerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID of the project owner."
+        },
+        "freelancerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID of the bidding freelancer."
+        },
+        "freelancerName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Name of the bidding freelancer."
+        },
+        "freelancerSpecialty": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Specialty of the bidding freelancer."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Proposed bid value in BRL."
+        },
+        "deliveryDays": {
+          "type": "number",
+          "description": "Proposed delivery duration in days."
+        },
+        "pitch": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 1500,
+          "description": "Technical implementation proposal."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "accepted", "rejected"],
+          "maxLength": 20,
+          "description": "Proposal status."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update server timestamp."
+        }
+      },
+      "required": [
+        "projectId",
+        "projectOwnerId",
+        "freelancerId",
+        "freelancerName",
+        "freelancerSpecialty",
+        "amount",
+        "deliveryDays",
+        "pitch",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Worklog": {
+      "title": "Worklog",
+      "description": "Tracked engineering hours linked to a Git commit hash and branch.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Parent project ID."
+        },
+        "projectOwnerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Project owner UID."
+        },
+        "freelancerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Freelancer UID logging the work."
+        },
+        "freelancerName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Freelancer display name."
+        },
+        "hours": {
+          "type": "number",
+          "description": "Hours worked in this session."
+        },
+        "commitHash": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 40,
+          "pattern": "^[a-fA-F0-9]+$",
+          "description": "Git commit SHA hash."
+        },
+        "branchName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Git branch name."
+        },
+        "commitMessage": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 500,
+          "description": "Commit description and deliverables."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        }
+      },
+      "required": [
+        "projectId",
+        "projectOwnerId",
+        "freelancerId",
+        "freelancerName",
+        "hours",
+        "commitHash",
+        "branchName",
+        "commitMessage",
+        "createdAt"
+      ]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Real-time communication message inside a project workspace.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Parent project ID."
+        },
+        "projectOwnerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Project owner UID."
+        },
+        "senderId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Sender UID."
+        },
+        "senderName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Sender display name."
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Sanitized message text."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        }
+      },
+      "required": [
+        "projectId",
+        "projectOwnerId",
+        "senderId",
+        "senderName",
+        "text",
+        "createdAt"
+      ]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Transparent mutual evaluation and reputation feedback after project completion.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Parent project ID."
+        },
+        "projectOwnerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Project owner UID."
+        },
+        "reviewerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Author of the review."
+        },
+        "reviewerName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Name of the reviewer."
+        },
+        "targetUserId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Evaluated user UID."
+        },
+        "rating": {
+          "type": "number",
+          "description": "Overall rating from 1 to 5."
+        },
+        "codeQualityScore": {
+          "type": "number",
+          "description": "Code quality and architecture score from 1 to 5."
+        },
+        "communicationScore": {
+          "type": "number",
+          "description": "Communication and deadline score from 1 to 5."
+        },
+        "comment": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 1000,
+          "description": "Detailed transparent feedback."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        }
+      },
+      "required": [
+        "projectId",
+        "projectOwnerId",
+        "reviewerId",
+        "reviewerName",
+        "targetUserId",
+        "rating",
+        "codeQualityScore",
+        "communicationScore",
+        "comment",
+        "createdAt"
+      ]
+    },
+    "EscrowLedgerEntry": {
+      "title": "EscrowLedgerEntry",
+      "description": "Append-only immutable audit entry for zero-commission Escrow state transitions.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Parent project ID."
+        },
+        "projectOwnerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Project owner UID."
+        },
+        "freelancerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Contracted freelancer UID."
+        },
+        "actorUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID that initiated this transition."
+        },
+        "state": {
+          "type": "string",
+          "enum": ["pending", "in_escrow", "released", "refunded"],
+          "maxLength": 20,
+          "description": "Escrow ledger transition state."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Escrow amount in BRL."
+        },
+        "commissionAmount": {
+          "type": "number",
+          "description": "Platform fee (always 0 in Devana)."
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Client-generated idempotency key matching the document ID."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        }
+      },
+      "required": [
+        "projectId",
+        "projectOwnerId",
+        "freelancerId",
+        "actorUid",
+        "state",
+        "amount",
+        "commissionAmount",
+        "idempotencyKey",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserPublicProfile" },
+      "description": "Public directory of freelancers and clients (no PII)."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/UserPrivatePii" },
+      "description": "Strictly isolated owner-only encrypted PII and notification settings."
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Tech projects published on the marketplace."
+    },
+    "/projects/{projectId}/bids/{bidId}": {
+      "schema": { "$ref": "#/entities/Bid" },
+      "description": "Proposals submitted for a project."
+    },
+    "/projects/{projectId}/worklogs/{worklogId}": {
+      "schema": { "$ref": "#/entities/Worklog" },
+      "description": "Git commits and tracked engineering hours for a project."
+    },
+    "/projects/{projectId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Real-time workspace chat messages for a project."
+    },
+    "/projects/{projectId}/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/Review" },
+      "description": "Transparent reputation reviews upon project completion."
+    },
+    "/projects/{projectId}/escrow_ledger/{entryId}": {
+      "schema": { "$ref": "#/entities/EscrowLedgerEntry" },
+      "description": "Append-only immutable audit trail of Escrow state transitions."
+    }
+  }
+}

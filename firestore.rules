@@ -1,0 +1,580 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net: Default-Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================================
+    // Global Hardened Primitives
+    // =========================================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // =========================================================================
+    // Entity Validation Blueprints (Anti-Update-Gap)
+    // =========================================================================
+    function isValidUserPublicProfile(data) {
+      return data.keys().hasAll([
+          'uid', 'displayName', 'roleType', 'isAvailableForHire', 'specialty', 'hourlyRate',
+          'reputationScore', 'completedProjects', 'githubUsername',
+          'avatarUrl', 'bio', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid', 'displayName', 'roleType', 'isAvailableForHire', 'specialty', 'hourlyRate',
+          'reputationScore', 'completedProjects', 'githubUsername',
+          'avatarUrl', 'bio', 'createdAt', 'updatedAt'
+        ]) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 &&
+        data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.uid == request.auth.uid &&
+        data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 80 &&
+        data.roleType is string && data.roleType.size() <= 20 && (
+          data.roleType == 'client' || data.roleType == 'freelancer'
+        ) &&
+        data.isAvailableForHire is bool &&
+        data.specialty is string && data.specialty.size() >= 2 && data.specialty.size() <= 100 &&
+        data.hourlyRate is number && data.hourlyRate >= 0 && data.hourlyRate <= 100000 &&
+        data.reputationScore is number && data.reputationScore >= 0 && data.reputationScore <= 5 &&
+        data.completedProjects is number && data.completedProjects >= 0 && data.completedProjects <= 100000 &&
+        data.githubUsername is string && data.githubUsername.size() <= 60 &&
+        data.avatarUrl is string && data.avatarUrl.size() <= 500 &&
+        data.bio is string && data.bio.size() <= 600 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivatePii(data) {
+      return data.keys().hasAll([
+          'ownerId', 'encryptedPiiPayload', 'pushNotificationsEnabled',
+          'notifyOnBid', 'notifyOnMessage', 'notifyOnEscrow',
+          'backupEndpointUrl', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'encryptedPiiPayload', 'pushNotificationsEnabled',
+          'notifyOnBid', 'notifyOnMessage', 'notifyOnEscrow',
+          'backupEndpointUrl', 'updatedAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+        data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.encryptedPiiPayload is string && data.encryptedPiiPayload.size() <= 4096 &&
+        data.pushNotificationsEnabled is bool &&
+        data.notifyOnBid is bool &&
+        data.notifyOnMessage is bool &&
+        data.notifyOnEscrow is bool &&
+        data.backupEndpointUrl is string && data.backupEndpointUrl.size() <= 300 &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll([
+          'title', 'description', 'category', 'budget', 'deadlineDays',
+          'repoUrl', 'ownerId', 'ownerName', 'assignedFreelancerId',
+          'assignedFreelancerName', 'status', 'escrowStatus',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'title', 'description', 'category', 'budget', 'deadlineDays',
+          'repoUrl', 'ownerId', 'ownerName', 'assignedFreelancerId',
+          'assignedFreelancerName', 'status', 'escrowStatus',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.title is string && data.title.size() >= 5 && data.title.size() <= 140 &&
+        data.description is string && data.description.size() >= 10 && data.description.size() <= 3000 &&
+        data.category is string && data.category.size() <= 50 && (
+          data.category == 'Backend & APIs' ||
+          data.category == 'Frontend & UI' ||
+          data.category == 'Cloud & DevOps' ||
+          data.category == 'Dados & IA' ||
+          data.category == 'Mobile' ||
+          data.category == 'Segurança & Auditoria'
+        ) &&
+        data.budget is number && data.budget >= 50 && data.budget <= 10000000 &&
+        data.deadlineDays is number && data.deadlineDays >= 1 && data.deadlineDays <= 365 &&
+        data.repoUrl is string && data.repoUrl.size() <= 300 &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+        data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerName is string && data.ownerName.size() >= 2 && data.ownerName.size() <= 80 &&
+        data.assignedFreelancerId is string && data.assignedFreelancerId.size() <= 128 &&
+        data.assignedFreelancerName is string && data.assignedFreelancerName.size() <= 80 &&
+        data.status is string && data.status.size() <= 20 && (
+          data.status == 'open' ||
+          data.status == 'in_progress' ||
+          data.status == 'completed' ||
+          data.status == 'cancelled'
+        ) &&
+        data.escrowStatus is string && data.escrowStatus.size() <= 20 && (
+          data.escrowStatus == 'unfunded' ||
+          data.escrowStatus == 'funded' ||
+          data.escrowStatus == 'released' ||
+          data.escrowStatus == 'refunded'
+        ) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidEscrowLedgerEntry(data) {
+      return data.keys().hasAll([
+          'projectId', 'projectOwnerId', 'freelancerId', 'actorUid',
+          'state', 'amount', 'commissionAmount', 'idempotencyKey', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'projectId', 'projectOwnerId', 'freelancerId', 'actorUid',
+          'state', 'amount', 'commissionAmount', 'idempotencyKey', 'createdAt'
+        ]) &&
+        data.projectId is string && data.projectId.size() >= 1 && data.projectId.size() <= 128 &&
+        data.projectId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.projectOwnerId is string && data.projectOwnerId.size() >= 1 && data.projectOwnerId.size() <= 128 &&
+        data.projectOwnerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.freelancerId is string && data.freelancerId.size() >= 1 && data.freelancerId.size() <= 128 &&
+        data.freelancerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.actorUid is string && data.actorUid.size() >= 1 && data.actorUid.size() <= 128 &&
+        data.actorUid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.actorUid == request.auth.uid &&
+        data.state is string && data.state.size() <= 20 && (
+          data.state == 'pending' ||
+          data.state == 'in_escrow' ||
+          data.state == 'released' ||
+          data.state == 'refunded'
+        ) &&
+        data.amount is number && data.amount >= 50 && data.amount <= 10000000 &&
+        data.commissionAmount is number && data.commissionAmount == 0 &&
+        data.idempotencyKey is string && data.idempotencyKey.size() >= 8 && data.idempotencyKey.size() <= 128 &&
+        data.idempotencyKey.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidBid(data) {
+      return data.keys().hasAll([
+          'projectId', 'projectOwnerId', 'freelancerId', 'freelancerName',
+          'freelancerSpecialty', 'amount', 'deliveryDays', 'pitch',
+          'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'projectId', 'projectOwnerId', 'freelancerId', 'freelancerName',
+          'freelancerSpecialty', 'amount', 'deliveryDays', 'pitch',
+          'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.projectId is string && data.projectId.size() >= 1 && data.projectId.size() <= 128 &&
+        data.projectId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.projectOwnerId is string && data.projectOwnerId.size() >= 1 && data.projectOwnerId.size() <= 128 &&
+        data.projectOwnerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.freelancerId is string && data.freelancerId.size() >= 1 && data.freelancerId.size() <= 128 &&
+        data.freelancerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.freelancerName is string && data.freelancerName.size() >= 2 && data.freelancerName.size() <= 80 &&
+        data.freelancerSpecialty is string && data.freelancerSpecialty.size() <= 100 &&
+        data.amount is number && data.amount >= 50 && data.amount <= 10000000 &&
+        data.deliveryDays is number && data.deliveryDays >= 1 && data.deliveryDays <= 365 &&
+        data.pitch is string && data.pitch.size() >= 10 && data.pitch.size() <= 1500 &&
+        data.status is string && data.status.size() <= 20 && (
+          data.status == 'pending' ||
+          data.status == 'accepted' ||
+          data.status == 'rejected'
+        ) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidWorklog(data) {
+      return data.keys().hasAll([
+          'projectId', 'projectOwnerId', 'freelancerId', 'freelancerName',
+          'hours', 'commitHash', 'branchName', 'commitMessage', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'projectId', 'projectOwnerId', 'freelancerId', 'freelancerName',
+          'hours', 'commitHash', 'branchName', 'commitMessage', 'createdAt'
+        ]) &&
+        data.projectId is string && data.projectId.size() >= 1 && data.projectId.size() <= 128 &&
+        data.projectId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.projectOwnerId is string && data.projectOwnerId.size() >= 1 && data.projectOwnerId.size() <= 128 &&
+        data.projectOwnerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.freelancerId is string && data.freelancerId.size() >= 1 && data.freelancerId.size() <= 128 &&
+        data.freelancerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.freelancerId == request.auth.uid &&
+        data.freelancerName is string && data.freelancerName.size() >= 2 && data.freelancerName.size() <= 80 &&
+        data.hours is number && data.hours > 0 && data.hours <= 24 &&
+        data.commitHash is string && data.commitHash.size() >= 7 && data.commitHash.size() <= 40 &&
+        data.commitHash.matches('^[a-fA-F0-9]+$') &&
+        data.branchName is string && data.branchName.size() >= 1 && data.branchName.size() <= 100 &&
+        data.commitMessage is string && data.commitMessage.size() >= 3 && data.commitMessage.size() <= 500 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidChatMessage(data) {
+      return data.keys().hasAll([
+          'projectId', 'projectOwnerId', 'senderId', 'senderName', 'text', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'projectId', 'projectOwnerId', 'senderId', 'senderName', 'text', 'createdAt'
+        ]) &&
+        data.projectId is string && data.projectId.size() >= 1 && data.projectId.size() <= 128 &&
+        data.projectId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.projectOwnerId is string && data.projectOwnerId.size() >= 1 && data.projectOwnerId.size() <= 128 &&
+        data.projectOwnerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.senderId is string && data.senderId.size() >= 1 && data.senderId.size() <= 128 &&
+        data.senderId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.senderId == request.auth.uid &&
+        data.senderName is string && data.senderName.size() >= 2 && data.senderName.size() <= 80 &&
+        data.text is string && data.text.size() >= 1 && data.text.size() <= 1000 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidReview(data) {
+      return data.keys().hasAll([
+          'projectId', 'projectOwnerId', 'reviewerId', 'reviewerName',
+          'targetUserId', 'rating', 'codeQualityScore', 'communicationScore',
+          'comment', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'projectId', 'projectOwnerId', 'reviewerId', 'reviewerName',
+          'targetUserId', 'rating', 'codeQualityScore', 'communicationScore',
+          'comment', 'createdAt'
+        ]) &&
+        data.projectId is string && data.projectId.size() >= 1 && data.projectId.size() <= 128 &&
+        data.projectId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.projectOwnerId is string && data.projectOwnerId.size() >= 1 && data.projectOwnerId.size() <= 128 &&
+        data.projectOwnerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.reviewerId is string && data.reviewerId.size() >= 1 && data.reviewerId.size() <= 128 &&
+        data.reviewerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.reviewerId == request.auth.uid &&
+        data.reviewerName is string && data.reviewerName.size() >= 2 && data.reviewerName.size() <= 80 &&
+        data.targetUserId is string && data.targetUserId.size() >= 1 && data.targetUserId.size() <= 128 &&
+        data.targetUserId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+        data.codeQualityScore is number && data.codeQualityScore >= 1 && data.codeQualityScore <= 5 &&
+        data.communicationScore is number && data.communicationScore >= 1 && data.communicationScore <= 5 &&
+        data.comment is string && data.comment.size() >= 5 && data.comment.size() <= 1000 &&
+        data.createdAt is timestamp;
+    }
+
+    // =========================================================================
+    // Collection Match Blocks
+    // =========================================================================
+
+    // 1. Public User Profiles (PII-Free Split Collection)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (
+        resource.data.isAvailableForHire == true ||
+        isOwner(userId)
+      );
+      allow list: if resource.data.isAvailableForHire == true || (
+        isSignedIn() && resource.data.uid == request.auth.uid
+      );
+      allow create: if isVerifiedUser() &&
+        isValidId(userId) &&
+        isOwner(userId) &&
+        isValidUserPublicProfile(incoming()) &&
+        incoming().reputationScore == 0 &&
+        incoming().completedProjects == 0 &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isValidId(userId) &&
+        isOwner(userId) &&
+        isValidUserPublicProfile(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().reputationScore == existing().reputationScore &&
+        incoming().completedProjects == existing().completedProjects &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName', 'roleType', 'isAvailableForHire', 'specialty', 'hourlyRate',
+          'githubUsername', 'avatarUrl', 'bio', 'updatedAt'
+        ]);
+      allow delete: if false;
+
+      // 2. Private User PII & Notification Preferences (Strictly Owner-Only)
+      match /private/{docId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(docId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isVerifiedUser() &&
+          isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(docId) &&
+          isValidUserPrivatePii(incoming()) &&
+          incoming().updatedAt == request.time;
+        allow update: if isVerifiedUser() &&
+          isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(docId) &&
+          isValidUserPrivatePii(incoming()) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'encryptedPiiPayload', 'pushNotificationsEnabled',
+            'notifyOnBid', 'notifyOnMessage', 'notifyOnEscrow',
+            'backupEndpointUrl', 'updatedAt'
+          ]);
+        allow delete: if false;
+      }
+    }
+
+    // 3. Projects Collection
+    match /projects/{projectId} {
+      allow get: if isValidId(projectId) && (
+        resource.data.status == 'open' ||
+        (isSignedIn() && (
+          resource.data.ownerId == request.auth.uid ||
+          resource.data.assignedFreelancerId == request.auth.uid
+        ))
+      );
+      allow list: if resource.data.status == 'open' || (
+        isSignedIn() && (
+          resource.data.ownerId == request.auth.uid ||
+          resource.data.assignedFreelancerId == request.auth.uid
+        )
+      );
+      allow create: if isVerifiedUser() &&
+        isValidId(projectId) &&
+        isValidProject(incoming()) &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().status == 'open' &&
+        incoming().assignedFreelancerId == '' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+
+      // Action-Based Update Pattern with Terminal State Locking
+      allow update: if isVerifiedUser() &&
+        isValidId(projectId) &&
+        isValidProject(incoming()) &&
+        existing().status != 'completed' &&
+        existing().status != 'cancelled' &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          // Action 1: Owner assigns freelancer & funds escrow
+          (
+            existing().ownerId == request.auth.uid &&
+            existing().status == 'open' &&
+            incoming().status == 'in_progress' &&
+            incoming().escrowStatus == 'funded' &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'assignedFreelancerId', 'assignedFreelancerName',
+              'status', 'escrowStatus', 'budget', 'updatedAt'
+            ])
+          ) ||
+          // Action 2: Owner completes project & releases escrow
+          (
+            existing().ownerId == request.auth.uid &&
+            existing().status == 'in_progress' &&
+            incoming().status == 'completed' &&
+            incoming().escrowStatus == 'released' &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'status', 'escrowStatus', 'updatedAt'
+            ])
+          ) ||
+          // Action 3: Owner edits project details while open
+          (
+            existing().ownerId == request.auth.uid &&
+            existing().status == 'open' &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'description', 'category', 'budget',
+              'deadlineDays', 'repoUrl', 'escrowStatus', 'updatedAt'
+            ])
+          ) ||
+          // Action 4: Owner cancels open project
+          (
+            existing().ownerId == request.auth.uid &&
+            existing().status == 'open' &&
+            incoming().status == 'cancelled' &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'status', 'updatedAt'
+            ])
+          ) ||
+          // Action 5: Owner cancels and refunds in-progress funded project
+          (
+            existing().ownerId == request.auth.uid &&
+            existing().status == 'in_progress' &&
+            existing().escrowStatus == 'funded' &&
+            incoming().status == 'cancelled' &&
+            incoming().escrowStatus == 'refunded' &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'status', 'escrowStatus', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if false;
+
+      // 4. Bids Subcollection (Master Gate Pattern — Owner & Bid Author Only)
+      match /bids/{bidId} {
+        allow get: if isSignedIn() && isValidId(projectId) && isValidId(bidId) &&
+          resource.data.projectId == projectId && (
+            resource.data.projectOwnerId == request.auth.uid ||
+            resource.data.freelancerId == request.auth.uid
+          );
+        allow list: if isSignedIn() &&
+          resource.data.projectId == projectId && (
+            resource.data.projectOwnerId == request.auth.uid ||
+            resource.data.freelancerId == request.auth.uid
+          );
+        allow create: if isVerifiedUser() &&
+          isValidId(projectId) &&
+          isValidId(bidId) &&
+          isValidBid(incoming()) &&
+          incoming().projectId == projectId &&
+          incoming().freelancerId == request.auth.uid &&
+          incoming().status == 'pending' &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          get(/databases/$(database)/documents/projects/$(projectId)).data.status == 'open' &&
+          get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == incoming().projectOwnerId;
+
+        allow update: if isVerifiedUser() &&
+          isValidId(projectId) &&
+          isValidId(bidId) &&
+          isValidBid(incoming()) &&
+          existing().status == 'pending' &&
+          get(/databases/$(database)/documents/projects/$(projectId)).data.status == 'open' &&
+          incoming().projectId == existing().projectId &&
+          incoming().projectOwnerId == existing().projectOwnerId &&
+          incoming().freelancerId == existing().freelancerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time && (
+            // Action 1: Project Owner accepts or rejects bid
+            (
+              get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid &&
+              (incoming().status == 'accepted' || incoming().status == 'rejected') &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+            ) ||
+            // Action 2: Freelancer updates their pending pitch/amount
+            (
+              existing().freelancerId == request.auth.uid &&
+              incoming().status == 'pending' &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['amount', 'deliveryDays', 'pitch', 'updatedAt'])
+            )
+          );
+        allow delete: if false;
+      }
+
+      // 5. Worklogs Subcollection (Master Gate Pattern — Project Participants Only)
+      match /worklogs/{worklogId} {
+        allow get: if isSignedIn() && isValidId(projectId) && isValidId(worklogId) &&
+          resource.data.projectId == projectId && (
+            resource.data.projectOwnerId == request.auth.uid ||
+            resource.data.freelancerId == request.auth.uid ||
+            get(/databases/$(database)/documents/projects/$(projectId)).data.assignedFreelancerId == request.auth.uid
+          );
+        allow list: if isSignedIn() &&
+          resource.data.projectId == projectId && (
+            resource.data.projectOwnerId == request.auth.uid ||
+            resource.data.freelancerId == request.auth.uid ||
+            get(/databases/$(database)/documents/projects/$(projectId)).data.assignedFreelancerId == request.auth.uid
+          );
+        allow create: if isVerifiedUser() &&
+          isValidId(projectId) &&
+          isValidId(worklogId) &&
+          isValidWorklog(incoming()) &&
+          incoming().projectId == projectId &&
+          incoming().createdAt == request.time &&
+          (
+            get(/databases/$(database)/documents/projects/$(projectId)).data.assignedFreelancerId == request.auth.uid ||
+            get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid
+          ) &&
+          get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == incoming().projectOwnerId;
+        allow update, delete: if false;
+      }
+
+      // 6. Real-Time Chat Messages Subcollection (Master Gate Pattern)
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(projectId) && isValidId(messageId) &&
+          resource.data.projectId == projectId && (
+            resource.data.projectOwnerId == request.auth.uid ||
+            resource.data.senderId == request.auth.uid ||
+            get(/databases/$(database)/documents/projects/$(projectId)).data.assignedFreelancerId == request.auth.uid ||
+            get(/databases/$(database)/documents/projects/$(projectId)).data.status == 'open'
+          );
+        allow list: if isSignedIn() &&
+          resource.data.projectId == projectId && (
+            resource.data.projectOwnerId == request.auth.uid ||
+            resource.data.senderId == request.auth.uid ||
+            get(/databases/$(database)/documents/projects/$(projectId)).data.assignedFreelancerId == request.auth.uid ||
+            get(/databases/$(database)/documents/projects/$(projectId)).data.status == 'open'
+          );
+        allow create: if isVerifiedUser() &&
+          isValidId(projectId) &&
+          isValidId(messageId) &&
+          isValidChatMessage(incoming()) &&
+          incoming().projectId == projectId &&
+          incoming().createdAt == request.time &&
+          exists(/databases/$(database)/documents/projects/$(projectId)) &&
+          get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == incoming().projectOwnerId && (
+            get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid ||
+            get(/databases/$(database)/documents/projects/$(projectId)).data.assignedFreelancerId == request.auth.uid ||
+            get(/databases/$(database)/documents/projects/$(projectId)).data.status == 'open'
+          );
+        allow update, delete: if false;
+      }
+
+      // 7. Reviews Subcollection (Master Gate Pattern)
+      match /reviews/{reviewId} {
+        allow get: if isSignedIn() && isValidId(projectId) && isValidId(reviewId) &&
+          resource.data.projectId == projectId;
+        allow list: if isSignedIn() && resource.data.projectId == projectId;
+        allow create: if isVerifiedUser() &&
+          isValidId(projectId) &&
+          isValidId(reviewId) &&
+          isValidReview(incoming()) &&
+          incoming().projectId == projectId &&
+          incoming().createdAt == request.time &&
+          get(/databases/$(database)/documents/projects/$(projectId)).data.status == 'completed' &&
+          get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == incoming().projectOwnerId &&
+          (
+            get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid ||
+            get(/databases/$(database)/documents/projects/$(projectId)).data.assignedFreelancerId == request.auth.uid
+          );
+        allow update, delete: if false;
+      }
+
+      // 8. Escrow Ledger Subcollection (Append-Only Financial Audit Trail)
+      match /escrow_ledger/{entryId} {
+        allow get: if isSignedIn() && isValidId(projectId) && isValidId(entryId) &&
+          resource.data.projectId == projectId && (
+            resource.data.projectOwnerId == request.auth.uid ||
+            resource.data.freelancerId == request.auth.uid ||
+            resource.data.actorUid == request.auth.uid
+          );
+        allow list: if isSignedIn() &&
+          resource.data.projectId == projectId && (
+            resource.data.projectOwnerId == request.auth.uid ||
+            resource.data.freelancerId == request.auth.uid ||
+            resource.data.actorUid == request.auth.uid
+          );
+        allow create: if isVerifiedUser() &&
+          isValidId(projectId) &&
+          isValidId(entryId) &&
+          isValidEscrowLedgerEntry(incoming()) &&
+          incoming().projectId == projectId &&
+          entryId == incoming().idempotencyKey &&
+          incoming().createdAt == request.time &&
+          get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid &&
+          get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == incoming().projectOwnerId;
+        allow update, delete: if false;
+      }
+    }
+  }
+}

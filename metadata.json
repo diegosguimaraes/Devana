@@ -1,0 +1,6 @@
+{
+  "name": "Devana — Tech Freelance & Escrow Workspace",
+  "description": "Plataforma gratuita para freelancers de tecnologia e clientes com sistema de propostas (bidding), custódia de pagamentos (escrow), rastreamento de horas e commits Git, chat em tempo real, relatórios PDF/CSV e backup criptografado.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
